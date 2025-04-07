@@ -204,19 +204,30 @@ void mipi_dsi_hal_host_gen_read_short_packet(mipi_dsi_hal_context_t *hal, uint8_
     mipi_dsi_host_ll_enable_bta(hal->host, true);
     // listen to the same virtual channel as the one sent to
     mipi_dsi_host_ll_gen_set_rx_vcid(hal->host, vc);
+    
+        // 
+    while (!mipi_dsi_host_ll_gen_is_read_fifo_empty(hal->host)){
+        mipi_dsi_host_ll_gen_read_payload_fifo(hal->host);
+    }
+    
     mipi_dsi_hal_host_gen_write_short_packet(hal, vc, dt, header_data);
     while (mipi_dsi_host_ll_gen_is_read_cmd_busy(hal->host));
     // wait data to come into the fifo
     while (mipi_dsi_host_ll_gen_is_read_fifo_empty(hal->host));
     uint32_t temp = 0;
     uint32_t counter = 0;
-    while (!mipi_dsi_host_ll_gen_is_read_fifo_empty(hal->host)) {
+    while (counter < buffer_size) {
+        if(!mipi_dsi_host_ll_gen_is_read_fifo_empty(hal->host)){
         temp = mipi_dsi_host_ll_gen_read_payload_fifo(hal->host);
         for (int i = 0; i < 4; i++) {
             if (counter < buffer_size) {
                 receive_buffer[counter] = (temp >> (8 * i)) & 0xFF;
                 counter++;
             }
+        }
+        }
+        else {
+            while (mipi_dsi_host_ll_gen_is_read_fifo_empty(hal->host));
         }
     }
 }
